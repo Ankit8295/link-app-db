@@ -1,18 +1,29 @@
 const express = require("express");
 let app = express();
-let http = require("http").Server(app);
 const cors = require("cors");
+const https = require("https");
 const { MongoClient } = require("mongodb");
+const fs = require("fs");
+const { Server } = require("socket.io");
 
 const client = new MongoClient(
   "mongodb+srv://aankit8295:TPxqK9rP5VBrB0Um@resume.xaexoic.mongodb.net/?retryWrites=true&w=majority"
 );
 
+const https_options = {
+  ca: fs.readFileSync("./ca_bundle.crt"),
+  key: fs.readFileSync("./private.key"),
+  cert: fs.readFileSync("./certificate.crt"),
+};
+
+const secureServer = https.createServer(https_options, function (req, res) {
+  res.writeHead(200);
+  res.end("Welcome to Xenon chat HTTPS Server");
+});
+
 const corsOpts = {
   origin: "*",
-
   methods: ["GET", "POST"],
-
   allowedHeaders: ["Content-Type"],
 };
 
@@ -37,11 +48,11 @@ async function connectToDB() {
   }
 }
 
-app.get("/", function (req, res) {
-  console.log("Server-running");
+app.get("/", (req, res) => {
+  res.send("Hello World!");
 });
 
-let io = require("socket.io")(http, {
+const io = new Server(secureServer, {
   cors: {
     origin: "*",
   },
@@ -77,7 +88,7 @@ io.on("connection", async (socket) => {
       [`messages.${data.messageBy}.${data.messageId}`]: data,
     };
 
-    const updateReciever = {
+    const updateReceiver = {
       [`messages.${data.messageTo}.${data.messageId}`]: data,
     };
 
@@ -88,7 +99,7 @@ io.on("connection", async (socket) => {
 
     messageCollection.findOneAndUpdate(
       { userName: data.messageBy },
-      { $set: updateReciever }
+      { $set: updateReceiver }
     );
 
     const usersRoomId = [data.messageTo, data.messageBy].sort().join("-");
@@ -102,6 +113,6 @@ io.on("connection", async (socket) => {
   });
 });
 
-http.listen(3001, function () {
-  console.log("server running");
+secureServer.listen(8443, function () {
+  console.log("server listening at port 8443");
 });
