@@ -44,7 +44,7 @@ const client = new MongoClient(process.env.MONGO_DB_URI);
 async function connectToDB() {
   try {
     const dbClient = await client.connect();
-    const db = dbClient.db(MONGO_DB_NAME);
+    const db = dbClient.db(process.env.MONGO_DB_NAME);
     return db;
   } catch (error) {}
 }
