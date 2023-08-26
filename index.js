@@ -1,14 +1,12 @@
-const express = require("express");
-let app = express();
+const fs = require("fs");
+require("dotenv").config();
 const cors = require("cors");
 const https = require("https");
-const { MongoClient } = require("mongodb");
-const fs = require("fs");
+const express = require("express");
 const { Server } = require("socket.io");
+const { MongoClient } = require("mongodb");
 
-const client = new MongoClient(
-  "mongodb+srv://aankit8295:TPxqK9rP5VBrB0Um@resume.xaexoic.mongodb.net/?retryWrites=true&w=majority"
-);
+let app = express();
 
 const https_options = {
   ca: fs.readFileSync("./ca_bundle.crt"),
@@ -37,20 +35,19 @@ app.use((req, res, next) => {
   next();
 });
 
-async function connectToDB() {
-  try {
-    const dbClient = await client.connect();
-    console.log("Connected to MongoDB Atlas");
-    const db = dbClient.db("data");
-    return db;
-  } catch (error) {
-    console.error("Error connecting to MongoDB:", error);
-  }
-}
-
 app.get("/", (req, res) => {
   res.send("Hello World!");
 });
+
+const client = new MongoClient(process.env.MONGO_DB_URI);
+
+async function connectToDB() {
+  try {
+    const dbClient = await client.connect();
+    const db = dbClient.db(MONGO_DB_NAME);
+    return db;
+  } catch (error) {}
+}
 
 const io = new Server(secureServer, {
   cors: {
@@ -61,8 +58,6 @@ const io = new Server(secureServer, {
 let users = [];
 
 io.on("connection", async (socket) => {
-  console.log("A user connected", socket.id);
-
   const db = await connectToDB();
 
   const messageCollection = db.collection("messages");
@@ -109,7 +104,6 @@ io.on("connection", async (socket) => {
 
   socket.on("disconnect", () => {
     users = users.filter((user) => user.socketId !== socket.id);
-    console.log("A user disconnected", socket.id);
   });
 });
 
