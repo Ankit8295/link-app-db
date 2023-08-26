@@ -1,23 +1,26 @@
 const fs = require("fs");
 require("dotenv").config();
 const cors = require("cors");
-const https = require("https");
+// const https = require("https");
+const http = require("http");
 const express = require("express");
 const { Server } = require("socket.io");
 const { MongoClient } = require("mongodb");
 
 let app = express();
 
-const https_options = {
-  ca: fs.readFileSync("./ca_bundle.crt"),
-  key: fs.readFileSync("./private.key"),
-  cert: fs.readFileSync("./certificate.crt"),
-};
+// const https_options = {
+//   ca: fs.readFileSync("./ca_bundle.crt"),
+//   key: fs.readFileSync("./private.key"),
+//   cert: fs.readFileSync("./certificate.crt"),
+// };
 
-const secureServer = https.createServer(https_options, function (req, res) {
-  res.writeHead(200);
-  res.end("Welcome to Xenon chat HTTPS Server");
-});
+// const secureServer = https.createServer(https_options, function (req, res) {
+//   res.writeHead(200);
+//   res.end("Welcome to Xenon chat HTTPS Server");
+// });
+
+const httpserver = http.createServer(app);
 
 const corsOpts = {
   origin: "*",
@@ -49,15 +52,22 @@ async function connectToDB() {
   } catch (error) {}
 }
 
-const io = new Server(secureServer, {
+const io = new Server(httpserver, {
   cors: {
     origin: "*",
   },
 });
 
+// const io = new Server(secureServer, {
+//   cors: {
+//     origin: "*",
+//   },
+// });
+
 let users = [];
 
 io.on("connection", async (socket) => {
+  console.log("connected to socket");
   const db = await connectToDB();
 
   const messageCollection = db.collection("messages");
@@ -107,6 +117,9 @@ io.on("connection", async (socket) => {
   });
 });
 
-secureServer.listen(8443, function () {
+httpserver.listen(8443, function () {
   console.log("server listening at port 8443");
 });
+// secureServer.listen(8443, function () {
+//   console.log("server listening at port 8443");
+// });
